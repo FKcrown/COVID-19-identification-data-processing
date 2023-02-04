@@ -10,6 +10,9 @@ from vad import filter
 from enframe import pretune
 from enframe import enframe
 import csv
+import warnings
+from warnings import simplefilter
+simplefilter(action='ignore', category=FutureWarning)
 
 
 def create_dir_not_exist(path):
@@ -199,6 +202,44 @@ def plotmelspec(audiopath):
     plt.close('all')
 
 
+def plotlogmelspec(audiopath):
+    print(audiopath)
+
+    data, sr = librosa.load(audiopath, sr=None)
+
+    figure, axarr = plt.subplots(1, sharex=False)
+
+    figure.set_size_inches(4, 4)  # 输出图大小和时间长度成正比50ms一幅图
+    # 改变图像边沿大小，参数分别为左下右上，子图间距
+    figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+
+    [spectrum, freqs, times] = compute_spectrogram(data, sr)
+    index_frequency = np.argmax(freqs)
+
+    max_frequency = freqs[index_frequency]
+
+    melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512, power=2.0)  # 计算mel倒谱
+
+    logmelspec = librosa.power_to_db(melspec)  # 计算log-mel倒谱
+    # print('mel',np.shape(melspec))
+
+    axarr.matshow(logmelspec[1:index_frequency, :], cmap='jet',
+                  origin='lower',
+                  extent=(times[0], times[-1], freqs[0], max_frequency),
+                  aspect='auto')
+
+    plt.axis('off')
+
+    mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\log')
+
+    create_dir_not_exist(mel_folder)
+    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('log') + str('.jpg'),
+                   dpi=56)
+    # plt.show()
+
+    plt.close('all')
+
+
 def plotTFDF(audiopath):
     print(audiopath)
     # print("--- filename---" ,audiopath)
@@ -231,10 +272,10 @@ def plotTFDF(audiopath):
 
     plt.axis('off')
 
-    mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\mel')
+    mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\TFDF')
 
     create_dir_not_exist(mel_folder)
-    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('mel') + str('.jpg'),
+    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('TFDF') + str('.jpg'),
                    dpi=56)
     # plt.show()
 
@@ -302,13 +343,15 @@ def ge_graph(pathfile):
         ch1 = ch.FCT(sample_rate=sr)
         chirps = ch1.compute(data)
         # print(chirps)
-        plotchirplet(chirps, file)
+        # plotchirplet(chirps, file)
         # plotmelspec(file)
+        plotlogmelspec(file)
+        # plotTFDF(file)
         # plotsft(file)
         # joblib.dump(chirps, file[:-3] + 'jl')
 
 
-folder_path = r"F:\Database\Audios\整合\positive"
-vad(folder_path, 16000, 1000, 0.5)
+folder_path = r"F:\Database\Audios\整合\negative"
+# vad(folder_path, 16000, 1000, 0.5)
 ge_graph(os.path.join(folder_path, "vad", 'new'))
 print("finish!!")

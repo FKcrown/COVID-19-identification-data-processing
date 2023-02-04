@@ -10,6 +10,9 @@ from vad import filter
 from enframe import pretune
 from enframe import enframe
 import csv
+import warnings
+from warnings import simplefilter
+simplefilter(action='ignore', category=FutureWarning)
 
 
 def create_dir_not_exist(path):
@@ -53,7 +56,6 @@ def vad(file_dir, resample_sr, frame_time, overlap_rate):
     create_dir_not_exist(vad_dir)
 
     file_list = os.listdir(file_dir)
-    # 重采样操作
     for file_name in file_list:
         if file_name.endswith(".wav"):
             print(file_name)
@@ -61,7 +63,7 @@ def vad(file_dir, resample_sr, frame_time, overlap_rate):
             resample_path = os.path.join(resample_dir, file_name[:-4] + "-{}K".format(resample_sr / 1000) + ".wav")
 
             file, sr = librosa.load(file_path, sr=None)
-            if not abs(max(file.min(), file.max())) < 0.1:  # 判断音频是否为空文件
+            if not abs(max(file.min(), file.max())) < 0.005:
                 file_resample = librosa.resample(file, sr, resample_sr)
                 sf.write(resample_path, file_resample, resample_sr)
 
@@ -69,11 +71,11 @@ def vad(file_dir, resample_sr, frame_time, overlap_rate):
                 os.remove(resample_path)
             else:
                 print("{}为空音频".format(file_path))
+                print("{}为空音频".format(file_path))
                 with open('countries.csv', 'w', encoding='UTF8', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(file_path)  # 写入数据
 
-    # VAD静音消除
     for file in os.listdir(vad_dir):
         if file.endswith(".wav"):
             vad_path = os.path.join(vad_dir, file)
@@ -92,6 +94,22 @@ def compute_spectrogram(signal, sample_rate):
     spectrum = 10. * np.log10(spectrum)
 
     return [spectrum, freqs, times]
+
+
+def compute_TFDF(signal):
+    freq = np.size(signal, 0)  # 计算 X 的行数
+    time = np.size(signal, 1)  # 计算 X 的列数
+
+    TFDF_array = [[]]
+    for m in range(freq - 1):
+        TFDF_array.append([])
+        for t in range(time - 1):
+            dE_FT = signal[m, t + 1] + signal[m + 1, t] - signal[m, t] - signal[m + 1, t + 1]
+            TFDF_array[m].append(dE_FT)
+    TFDF_array.remove([])
+    TFDF = np.array(TFDF_array)
+
+    return TFDF
 
 
 def plotsft(audiopath):
@@ -145,7 +163,6 @@ def plotmelspec(audiopath):
     figure, axarr = plt.subplots(1, sharex=False)
     # glength=len(data)/sr*80
     figure.set_size_inches(4, 4)  # 输出图大小和时间长度成正比50ms一幅图
-
     # 改变图像边沿大小，参数分别为左下右上，子图间距
     figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
 
@@ -185,10 +202,89 @@ def plotmelspec(audiopath):
     plt.close('all')
 
 
+def plotlogmelspec(audiopath):
+    print(audiopath)
+
+    data, sr = librosa.load(audiopath, sr=None)
+
+    figure, axarr = plt.subplots(1, sharex=False)
+
+    figure.set_size_inches(4, 4)  # 输出图大小和时间长度成正比50ms一幅图
+    # 改变图像边沿大小，参数分别为左下右上，子图间距
+    figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+
+    [spectrum, freqs, times] = compute_spectrogram(data, sr)
+    index_frequency = np.argmax(freqs)
+
+    max_frequency = freqs[index_frequency]
+
+    melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512, power=2.0)  # 计算mel倒谱
+
+    logmelspec = librosa.power_to_db(melspec)  # 计算log-mel倒谱
+    # print('mel',np.shape(melspec))
+
+    axarr.matshow(logmelspec[1:index_frequency, :], cmap='jet',
+                  origin='lower',
+                  extent=(times[0], times[-1], freqs[0], max_frequency),
+                  aspect='auto')
+
+    plt.axis('off')
+
+    mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\log')
+
+    create_dir_not_exist(mel_folder)
+    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('log') + str('.jpg'),
+                   dpi=56)
+    # plt.show()
+
+    plt.close('all')
+
+
+def plotTFDF(audiopath):
+    print(audiopath)
+    # print("--- filename---" ,audiopath)
+    # print('绘制spec' )
+    data, sr = librosa.load(audiopath, sr=None)
+    # edata=data/abs(data).max()#对语音进行归一化
+    # print("数据长度采样率",len(data),sr)
+
+    # cmap = cmx.gray   #jet,parula,gray,rainbow
+    figure, axarr = plt.subplots(1, sharex=False)
+    # glength=len(data)/sr*80
+    figure.set_size_inches(4, 4)  # 输出图大小和时间长度成正比50ms一幅图
+    # 改变图像边沿大小，参数分别为左下右上，子图间距
+    figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+
+    [spectrum, freqs, times] = plt.mlab.specgram(data, NFFT=1024, Fs=sr,
+                                                 noverlap=512, window=np.hamming(1024))
+    melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512)
+    logmelspec = librosa.power_to_db(melspec)
+
+    TFDF = compute_TFDF(logmelspec)
+
+    index_frequency = np.argmax(freqs)
+    max_frequency = freqs[index_frequency]
+
+    axarr.matshow(TFDF[0:index_frequency, :], cmap='jet',
+                  origin='lower',
+                  extent=(times[0], times[-1], freqs[0], max_frequency),
+                  aspect='auto')
+
+    plt.axis('off')
+
+    mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\TFDF')
+
+    create_dir_not_exist(mel_folder)
+    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('TFDF') + str('.jpg'),
+                   dpi=56)
+    # plt.show()
+
+    plt.close('all')
+
 def plotchirplet(chirps, audiopath):
     # print("--- filename---" ,audiopath)
     data, sr = librosa.load(audiopath, sr=None)
-    # edata = data/abs(data).max()#对语音进行归一化
+    # edata=data/abs(data).max()#对语音进行归一化
     # print("数据长度采样率",len(data),sr)
     # print('绘制chirp' )
     # cmap = cmx.gray   #jet,parula,gray,rainbow
@@ -248,12 +344,14 @@ def ge_graph(pathfile):
         chirps = ch1.compute(data)
         # print(chirps)
         # plotchirplet(chirps, file)
-        plotmelspec(file)
+        # plotmelspec(file)
+        plotlogmelspec(file)
+        # plotTFDF(file)
         # plotsft(file)
         # joblib.dump(chirps, file[:-3] + 'jl')
 
 
-folder_path = r"C:\Users\Lollipop\Desktop\大创资料\test\yamnettest"
-vad(folder_path, 16000, 1000, 0.5)
+folder_path = r"F:\Database\Audios\整合\positive"
+# vad(folder_path, 16000, 1000, 0.5)
 ge_graph(os.path.join(folder_path, "vad", 'new'))
 print("finish!!")

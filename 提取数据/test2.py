@@ -102,3 +102,14 @@ axarr.matshow(TFDF[0:index_frequency, :], cmap='jet',
 # librosa.display.specshow(logmelspec, sr=sr, x_axis='time', y_axis='mel')
 plt.show()
 
+
+
+
+
+
+
+
+
+
+
+
