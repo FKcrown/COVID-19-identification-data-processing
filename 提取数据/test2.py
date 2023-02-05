@@ -81,11 +81,12 @@ data_1 = librosa.resample(data, sr, 16000)
 figure, axarr = plt.subplots(1, sharex=False)
 figure.set_size_inches(4, 4)
 # 改变图像边沿大小，参数分别为左下右上，子图间距
-figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+# figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
 
 [spectrum, freqs, times] = plt.mlab.specgram(data_1, NFFT=1024, Fs=sr,
                                                  noverlap=512, window=np.hamming(1024))
-melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512)
+# melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512)
+melspec = librosa.feature.melspectrogram(data, sr,  n_fft=1024, hop_length=512, n_mels=128)
 logmelspec = librosa.power_to_db(melspec)
 
 TFDF = compute_TFDF(logmelspec)
@@ -93,7 +94,7 @@ TFDF = compute_TFDF(logmelspec)
 index_frequency = np.argmax(freqs)
 max_frequency = freqs[index_frequency]
 
-axarr.matshow(TFDF[0:index_frequency, :], cmap='jet',
+axarr.matshow(melspec[0:index_frequency, :], cmap='jet',
               origin='lower',
               extent=(times[0], times[-1], freqs[0], max_frequency),
               # extent=(logmelspec[])

@@ -145,7 +145,7 @@ def plotsft(audiopath):
 
     # figure.tight_layout()
 
-    figure.savefig(audiopath[:-4] + str('spe') + str('.jpg'), dpi=100)
+    figure.savefig(audiopath[:-4] + str('.jpg'), dpi=100)
     # plt.show()
 
     plt.close('all')
@@ -171,7 +171,7 @@ def plotmelspec(audiopath):
 
     max_frequency = freqs[index_frequency]
 
-    melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512, power=2.0)  # 计算mel倒谱
+    melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512)  # 计算mel倒谱
 
     # print('mel',np.shape(melspec))
 
@@ -192,10 +192,10 @@ def plotmelspec(audiopath):
 
     # figure.tight_layout()
 
-    mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\mel')
+    mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\MFCC')
 
     create_dir_not_exist(mel_folder)
-    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('mel') + str('.jpg'),
+    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('.jpg'),
                    dpi=56)
     # plt.show()
 
@@ -218,9 +218,8 @@ def plotlogmelspec(audiopath):
 
     max_frequency = freqs[index_frequency]
 
-    melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512, power=2.0)  # 计算mel倒谱
-
-    logmelspec = librosa.power_to_db(melspec)  # 计算log-mel倒谱
+    melspec = librosa.feature.melspectrogram(data, sr, n_fft=1024, hop_length=512, n_mels=128)
+    logmelspec = librosa.power_to_db(melspec)
     # print('mel',np.shape(melspec))
 
     axarr.matshow(logmelspec[1:index_frequency, :], cmap='jet',
@@ -230,10 +229,10 @@ def plotlogmelspec(audiopath):
 
     plt.axis('off')
 
-    mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\log')
+    mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\logMel')
 
     create_dir_not_exist(mel_folder)
-    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('log') + str('.jpg'),
+    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('.jpg'),
                    dpi=56)
     # plt.show()
 
@@ -257,7 +256,7 @@ def plotTFDF(audiopath):
 
     [spectrum, freqs, times] = plt.mlab.specgram(data, NFFT=1024, Fs=sr,
                                                  noverlap=512, window=np.hamming(1024))
-    melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512)
+    melspec = librosa.feature.melspectrogram(data, sr, n_fft=1024, hop_length=512, n_mels=128)
     logmelspec = librosa.power_to_db(melspec)
 
     TFDF = compute_TFDF(logmelspec)
@@ -275,7 +274,7 @@ def plotTFDF(audiopath):
     mel_folder = audiopath[: audiopath.rfind("\\")] + str(r'\TFDF')
 
     create_dir_not_exist(mel_folder)
-    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('TFDF') + str('.jpg'),
+    figure.savefig(mel_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('.jpg'),
                    dpi=56)
     # plt.show()
 
@@ -317,10 +316,10 @@ def plotchirplet(chirps, audiopath):
 
     # figure.tight_layout()
 
-    ch_folder = audiopath[: audiopath.rfind("\\")] + str(r'\mel')
+    ch_folder = audiopath[: audiopath.rfind("\\")] + str(r'\chirplet')
 
     create_dir_not_exist(ch_folder)
-    figure.savefig(ch_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('ch') + str('.jpg'), dpi=56)
+    figure.savefig(ch_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('.jpg'), dpi=56)
     # plt.show()
 
     plt.close('all')
@@ -345,8 +344,8 @@ def ge_graph(pathfile):
         # print(chirps)
         # plotchirplet(chirps, file)
         # plotmelspec(file)
-        plotlogmelspec(file)
-        # plotTFDF(file)
+        # plotlogmelspec(file)
+        plotTFDF(file)
         # plotsft(file)
         # joblib.dump(chirps, file[:-3] + 'jl')
 
