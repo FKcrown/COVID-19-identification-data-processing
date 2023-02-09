@@ -71,7 +71,7 @@ def plotmelspec(audiopath):
     plt.close('all')
 
 
-audio_path = r'F:\Database\Audios\整合\negative\vad\new\aADACozj_cough-16.0K-VAD-0.wav'
+audio_path = r'F:\Database\Audios\整合\negative\vad\new\aADACozj_cough-16.0K-VAD-1.wav'
 data, sr = librosa.load(audio_path)
 
 data_1 = librosa.resample(data, sr, 16000)
@@ -81,7 +81,7 @@ data_1 = librosa.resample(data, sr, 16000)
 figure, axarr = plt.subplots(1, sharex=False)
 figure.set_size_inches(4, 4)
 # 改变图像边沿大小，参数分别为左下右上，子图间距
-# figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
 
 [spectrum, freqs, times] = plt.mlab.specgram(data_1, NFFT=1024, Fs=sr,
                                                  noverlap=512, window=np.hamming(1024))

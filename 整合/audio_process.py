@@ -20,7 +20,7 @@ def create_dir_not_exist(path):
         os.mkdir(path)
 
 
-def split_audio(file_path, frame_time, overlap_rate):
+def split_audio_id(file_path, file_id, frame_time, overlap_rate):
     data, sr = librosa.load(file_path, sr=None)
     frame_length = int(sr * frame_time / 1000)
     hop_length = int((1 - overlap_rate) * frame_length)
@@ -37,7 +37,7 @@ def split_audio(file_path, frame_time, overlap_rate):
     row = frames.shape[0]  # 50
     # print('帧数', row, col)
 
-    new_audio_path = os.path.join(file_path[:file_path.rfind("\\")], "new")
+    new_audio_path = os.path.join(file_path[:file_path.rfind("\\")], file_id)
     filename = file_path.split('\\')[-1]
 
     create_dir_not_exist(new_audio_path)
@@ -48,7 +48,9 @@ def split_audio(file_path, frame_time, overlap_rate):
         sf.write(file_path_new, frames[i, :], sr)
 
 
-def vad(file_dir, resample_sr, frame_time, overlap_rate):
+def vad(file_path, resample_sr, frame_time, overlap_rate):
+    file_dir = file_path[: file_path.rfind("\\")]
+    file_name = file_path[file_path.rfind("\\")+1: file_path.rfind('.')]
     resample_dir = os.path.join(file_dir, "resample")
     vad_dir = os.path.join(file_dir, "vad")
 
@@ -56,31 +58,26 @@ def vad(file_dir, resample_sr, frame_time, overlap_rate):
     create_dir_not_exist(vad_dir)
 
     file_list = os.listdir(file_dir)
-    for file_name in file_list:
-        if file_name.endswith(".wav"):
-            print(file_name)
-            file_path = os.path.join(file_dir, file_name)
-            resample_path = os.path.join(resample_dir, file_name[:-4] + "-{}K".format(resample_sr / 1000) + ".wav")
+    if file_path.endswith(".wav"):
+        print(file_path)
+        resample_path = os.path.join(resample_dir, file_name + "-{}K".format(resample_sr / 1000) + ".wav")
 
-            file, sr = librosa.load(file_path, sr=None)
-            if not abs(max(file.min(), file.max())) < 0.005:
-                file_resample = librosa.resample(file, sr, resample_sr)
-                sf.write(resample_path, file_resample, resample_sr)
+        file, sr = librosa.load(file_path, sr=None)
+        if not abs(max(file.min(), file.max())) < 0.005:
+            file_resample = librosa.resample(file, sr, resample_sr)
+            sf.write(resample_path, file_resample, resample_sr)
 
-                filter(resample_path, vad_dir, expand=False)
-                os.remove(resample_path)
-            else:
-                print("{}为空音频".format(file_path))
-                print("{}为空音频".format(file_path))
-                with open('countries.csv', 'w', encoding='UTF8', newline='') as f:
-                    writer = csv.writer(f)
-                    writer.writerow(file_path)  # 写入数据
+            filter(resample_path, vad_dir, expand=False)
+            os.remove(resample_path)
+        else:
+            print("{}为空音频".format(file_path))
+            with open('countries.csv', 'w', encoding='UTF8', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(file_path)  # 写入数据
 
-    for file in os.listdir(vad_dir):
-        if file.endswith(".wav"):
-            vad_path = os.path.join(vad_dir, file)
-            print(vad_path)
-            split_audio(vad_path, frame_time, overlap_rate)
+    file_vad = os.path.join(vad_dir, file_name + '-{}K-VAD.wav'.format(resample_sr / 1000))
+    split_audio_id(file_vad, file_name, frame_time, overlap_rate)
+    os.remove(file_vad)
 
 
 def compute_spectrogram(signal, sample_rate):
@@ -350,7 +347,7 @@ def ge_graph(pathfile):
         # joblib.dump(chirps, file[:-3] + 'jl')
 
 
-folder_path = r"F:\Database\Audios\整合\positive"
-vad(folder_path, 16000, 1000, 0.5)
-ge_graph(os.path.join(folder_path, "vad", 'new'))
+file_path = r"F:\Database\Audios\test测试\positive\0aa64689-c48a-421d-b353-c3496bad51ed.wav"
+vad(file_path, 16000, 1000, 0.5)
+# ge_graph(os.path.join(folder_path, "vad", 'new'))
 print("finish!!")
