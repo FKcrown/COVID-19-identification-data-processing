@@ -295,6 +295,7 @@ def plotchirplet(chirps, audiopath):
     tabfinal = list(reversed(chirps))
 
     [spectrum, freqs, times] = compute_spectrogram(data, sr)
+
     index_frequency = np.argmax(freqs)
     mxf = freqs[index_frequency]
     # print("最大频率",mxf)
@@ -325,6 +326,54 @@ def plotchirplet(chirps, audiopath):
     plt.close('all')
 
 
+def plotchTFDF(chirps, audiopath):
+    # print("--- filename---" ,audiopath)
+    data, sr = librosa.load(audiopath, sr=None)
+    # edata=data/abs(data).max()#对语音进行归一化
+    # print("数据长度采样率",len(data),sr)
+    # print('绘制chirp' )
+    # cmap = cmx.gray   #jet,parula,gray,rainbow
+    figure, axarr = plt.subplots(1, sharex=False)
+    # glength=len(data)/sr*80
+    figure.set_size_inches(4, 4)
+    # 改变图像边沿大小，参数分别为左下右上，子图间距
+    figure.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+    temp = list(reversed(chirps))
+    tabfinal = np.array(temp).reshape(len(temp), -1)
+    TFDF = compute_TFDF(tabfinal)
+
+    [spectrum, freqs, times] = compute_spectrogram(data, sr)
+
+    index_frequency = np.argmax(freqs)
+    mxf = freqs[index_frequency]
+    # print("最大频率",mxf)
+
+    axarr.matshow(TFDF, cmap='jet',
+                  origin='lower',
+                  extent=(0, times[-1], freqs[0], mxf),
+                  aspect='auto')
+
+    plt.axis('off')
+    # axarr.axes.xaxis.set_ticks_position('bottom')
+    # axarr.set_ylabel("Frequency in Hz")
+    # axarr.xaxis.grid(which='major', color='Black',
+    #  linestyle='-', linewidth=0.25)
+    # axarr.yaxis.grid(which='major', color='Black',
+    #  linestyle='-', linewidth=0.25)
+
+    # axarr.set_title('chirplet')
+
+    # figure.tight_layout()
+
+    ch_folder = audiopath[: audiopath.rfind("\\")] + str(r'\chTFDF')
+
+    create_dir_not_exist(ch_folder)
+    figure.savefig(ch_folder + audiopath[audiopath.rfind("\\"): audiopath.rfind(".")] + str('.jpg'), dpi=56)
+    # plt.show()
+
+    plt.close('all')
+
+
 def ge_graph(pathfile):
     chirplet = []
 
@@ -343,14 +392,15 @@ def ge_graph(pathfile):
         chirps = ch1.compute(data)
         # print(chirps)
         # plotchirplet(chirps, file)
+        plotchTFDF(chirps, file)
         # plotmelspec(file)
         # plotlogmelspec(file)
-        plotTFDF(file)
+        # plotTFDF(file)
         # plotsft(file)
         # joblib.dump(chirps, file[:-3] + 'jl')
 
 
-folder_path = r"F:\Database\Audios\整合\negative"
+folder_path = r"F:\Database\Audios\整合\positive"
 # vad(folder_path, 16000, 1000, 0.5)
 ge_graph(os.path.join(folder_path, "vad", 'new'))
 print("finish!!")

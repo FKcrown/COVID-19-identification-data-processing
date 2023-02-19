@@ -27,6 +27,7 @@ class FCT:
         _samplerate : samplerate of the signal
 
     """
+
     def __init__(self,
                  duration_longest_chirplet=1,
                  num_octaves=5,
@@ -64,18 +65,18 @@ class FCT:
         Returns :
             The bank of chirplets
         """
-        num_chirps = self._num_octaves*self._num_chirps_by_octave
+        num_chirps = self._num_octaves * self._num_chirps_by_octave
 
-        #create a list of coefficients based on attributes lambdas代表移动窗口的数量
-        lambdas = 2.0**(1+arange(num_chirps)/float(self._num_chirps_by_octave))
+        # create a list of coefficients based on attributes lambdas代表移动窗口的数量
+        lambdas = 2.0 ** (1 + arange(num_chirps) / float(self._num_chirps_by_octave))
 
-        #Low frequencies for a signal 窗口的频率下界f0
-        start_frequencies = (self._samplerate /lambdas)/2.0
+        # Low frequencies for a signal 窗口的频率下界f0
+        start_frequencies = (self._samplerate / lambdas) / 2.0
 
-        #high frequencies for a signal 窗口的频率上界f1
-        end_frequencies = self._samplerate /lambdas
-#持续时间d
-        durations = 2.0*self._duration_longest_chirplet/flipud(lambdas)
+        # high frequencies for a signal 窗口的频率上界f1
+        end_frequencies = self._samplerate / lambdas
+        # 持续时间d
+        durations = 2.0 * self._duration_longest_chirplet / flipud(lambdas)
 
         chirplets = list()
         for low_frequency, high_frequency, duration in zip(start_frequencies, end_frequencies, durations):
@@ -89,7 +90,7 @@ class FCT:
             The time bin duration
 
         """
-        return self._end_smoothing*10
+        return self._end_smoothing * 10
 
     def compute(self, input_signal):
         """compute the FCT on the given signal
@@ -102,25 +103,25 @@ class FCT:
         """
         # keep the real length of the signal
         size_data = len(input_signal)
-        
+
         # find the best power of 2
-        nearest_power_2 = 2**(size_data-1).bit_length()#找到最接近于数据长度的二进制数
-       
+        nearest_power_2 = 2 ** (size_data - 1).bit_length()  # 找到最接近于数据长度的二进制数
+
         # the signal must not be too short
-        while nearest_power_2 <= self._samplerate*self._duration_longest_chirplet:
+        while nearest_power_2 <= self._samplerate * self._duration_longest_chirplet:
             nearest_power_2 *= 2
 
         # pad with 0 to have the right length of signal如果不夠的话用0填充
-        #pad(被扩充数组，（数组前扩充的数量，数组后扩充的数量)，扩充方式，扩充的值
+        # pad(被扩充数组，（数组前扩充的数量，数组后扩充的数量)，扩充方式，扩充的值
 
-        data = np.lib.pad(input_signal, (0, nearest_power_2-size_data), 'constant', constant_values=0)
+        data = np.lib.pad(input_signal, (0, nearest_power_2 - size_data), 'constant', constant_values=0)
 
         # apply the fct to the adapted length signal计算所有频率点的chirplet变换系数
 
         chirp_transform = apply_filterbank(data, self._chirps, self._end_smoothing)
 
         # resize the signal to the right length
-  
+
         chirp_transform = resize_chirps(size_data, nearest_power_2, chirp_transform)
 
         return chirp_transform
@@ -136,8 +137,8 @@ def resize_chirps(size_data, size_power_2, chirps):
         Chirps with the correct length
     """
     size_chirps = len(chirps)
-    ratio = size_data/size_power_2
-    size = int(ratio*len(chirps[0]))
+    ratio = size_data / size_power_2
+    size = int(ratio * len(chirps[0]))
 
     resize_chirps = np.zeros((size_chirps, size))
     for i in range(0, size_chirps):
@@ -155,6 +156,7 @@ class Chirplet:
         _polynome_degree : degree of the polynome to generate the coefficients of the chirplet
         _filter_coefficients : coefficients applied to the signal
     """
+
     def __init__(self, samplerate, min_frequency, max_frequency, sigma, polynome_degree):
 
         """
@@ -169,7 +171,7 @@ class Chirplet:
 
         self._max_frequency = max_frequency
 
-        self._duration = sigma/10
+        self._duration = sigma / 10
 
         self._samplerate = samplerate
 
@@ -177,24 +179,25 @@ class Chirplet:
 
         self._filter_coefficients = self.calcul_coefficients()
 
-
     def calcul_coefficients(self):
         """calculate coefficients for the chirplets
         Returns :
             apodization coeeficients
         """
-        num_coeffs = linspace(0, self._duration, int(self._samplerate*self._duration))
+        num_coeffs = linspace(0, self._duration, int(self._samplerate * self._duration))
 
         if self._polynome_degree:
-            temp = (self._max_frequency-self._min_frequency)
-            temp /= ((self._polynome_degree+1)*self._duration**self._polynome_degree)*num_coeffs**self._polynome_degree+self._min_frequency
-            wave = cos(2*pi*num_coeffs*temp)
+            temp = (self._max_frequency - self._min_frequency)
+            temp /= ((
+                                 self._polynome_degree + 1) * self._duration ** self._polynome_degree) * num_coeffs ** self._polynome_degree + self._min_frequency
+            wave = cos(2 * pi * num_coeffs * temp)
         else:
-            temp = (self._min_frequency*(self._max_frequency/self._min_frequency)**(num_coeffs/self._duration)-self._min_frequency)
-            temp *= self._duration/log(self._max_frequency/self._min_frequency)
-            wave = cos(2*pi*temp)
+            temp = (self._min_frequency * (self._max_frequency / self._min_frequency) ** (
+                        num_coeffs / self._duration) - self._min_frequency)
+            temp *= self._duration / log(self._max_frequency / self._min_frequency)
+            wave = cos(2 * pi * temp)
 
-        coeffs = wave*hanning(len(num_coeffs))**2
+        coeffs = wave * hanning(len(num_coeffs)) ** 2
 
         return coeffs
 
@@ -207,8 +210,9 @@ class Chirplet:
         Returns :
             fast chirplet transform of the audio signal applied to a specific domain of frequencies
         """
-        windowed_fft = build_fft(input_signal, self._filter_coefficients, thresh_window)#计算信号和滤波器的线性卷积
-        return fft_smoothing(fabs(windowed_fft), end_smoothing)#计算公式前半部分指数
+        windowed_fft = build_fft(input_signal, self._filter_coefficients, thresh_window)  # 计算信号和滤波器的线性卷积
+        return fft_smoothing(fabs(windowed_fft), end_smoothing)  # 计算公式前半部分指数
+
 
 def apply_filterbank(input_signal, chirplets, end_smoothing):
     """generate list of signal with chirplets
@@ -222,11 +226,10 @@ def apply_filterbank(input_signal, chirplets, end_smoothing):
     fast_chirplet_transform = list()
 
     for chirplet in chirplets:
-        chirp_line = chirplet.smooth_up(input_signal, 6, end_smoothing)#计算单一频率的chirplet变换
+        chirp_line = chirplet.smooth_up(input_signal, 6, end_smoothing)  # 计算单一频率的chirplet变换
         fast_chirplet_transform.append(chirp_line)
 
     return np.array(fast_chirplet_transform)
-
 
 
 def fft_smoothing(input_signal, sigma):
@@ -240,9 +243,9 @@ def fft_smoothing(input_signal, sigma):
     """
     size_signal = input_signal.size
 
-    #shorten the signal
-    new_size = int(floor(10.0*size_signal*sigma))
-    half_new_size = new_size//2
+    # shorten the signal
+    new_size = int(floor(10.0 * size_signal * sigma))
+    half_new_size = new_size // 2
 
     fftx = fft(input_signal)
 
@@ -253,14 +256,15 @@ def fft_smoothing(input_signal, sigma):
     for ele in fftx[-half_new_size:]:
         short_fftx.append(ele)
 
-    apodization_coefficients = generate_apodization_coeffs(half_new_size, sigma, size_signal)#公式前半部分指数
+    apodization_coefficients = generate_apodization_coeffs(half_new_size, sigma, size_signal)  # 公式前半部分指数
 
-    #apply the apodization coefficients
+    # apply the apodization coefficients
     short_fftx[:half_new_size] *= apodization_coefficients
     short_fftx[half_new_size:] *= flipud(apodization_coefficients)
 
     realifftxw = ifft(short_fftx).real
     return realifftxw
+
 
 def generate_apodization_coeffs(num_coeffs, sigma, size):
     """generate apodization coefficients   切趾系数
@@ -273,10 +277,11 @@ def generate_apodization_coeffs(num_coeffs, sigma, size):
 
     """
     apodization_coefficients = arange(num_coeffs)
-    apodization_coefficients = apodization_coefficients**2
-    apodization_coefficients = apodization_coefficients/(2*(sigma*size)**2)
+    apodization_coefficients = apodization_coefficients ** 2
+    apodization_coefficients = apodization_coefficients / (2 * (sigma * size) ** 2)
     apodization_coefficients = exp(-apodization_coefficients)
     return apodization_coefficients
+
 
 def fft_based(input_signal, filter_coefficients, boundary=0):
     """applied fft if the signal is too short to be splitted in windows
@@ -288,22 +293,25 @@ def fft_based(input_signal, filter_coefficients, boundary=0):
         audio signal with application of fast Fourier transform
     """
     num_coeffs = filter_coefficients.size
-    half_size = num_coeffs//2#取整除 - 返回商的整数部分
+    half_size = num_coeffs // 2  # 取整除 - 返回商的整数部分
 
-    if boundary == 0:#ZERO PADDING
+    if boundary == 0:  # ZERO PADDING
         input_signal = np.lib.pad(input_signal, (half_size, half_size), 'constant', constant_values=0)
-        filter_coefficients = np.lib.pad(filter_coefficients, (0, input_signal.size-num_coeffs), 'constant', constant_values=0)
-        newx = ifft(fft(input_signal)*fft(filter_coefficients))#ifft反变换，fft变换
-        return newx[num_coeffs-1:-1]
+        filter_coefficients = np.lib.pad(filter_coefficients, (0, input_signal.size - num_coeffs), 'constant',
+                                         constant_values=0)
+        newx = ifft(fft(input_signal) * fft(filter_coefficients))  # ifft反变换，fft变换
+        return newx[num_coeffs - 1:-1]
 
-    elif boundary == 1:#symmetric  flipud翻转up/down direction.
-        input_signal = np.concatenate([flipud(input_signal[:half_size]), input_signal, flipud(input_signal[half_size:])])
-        filter_coefficients = np.lib.pad(filter_coefficients, (0, input_signal.size-num_coeffs), 'constant', constant_values=0)
-        newx = ifft(fft(input_signal)*fft(filter_coefficients))#计算信号和系数的卷积
-        return newx[num_coeffs-1:-1]
+    elif boundary == 1:  # symmetric  flipud翻转up/down direction.
+        input_signal = np.concatenate(
+            [flipud(input_signal[:half_size]), input_signal, flipud(input_signal[half_size:])])
+        filter_coefficients = np.lib.pad(filter_coefficients, (0, input_signal.size - num_coeffs), 'constant',
+                                         constant_values=0)
+        newx = ifft(fft(input_signal) * fft(filter_coefficients))  # 计算信号和系数的卷积
+        return newx[num_coeffs - 1:-1]
 
-    else:#periodic  roll周期循环
-        return roll(ifft(fft(input_signal)*fft(filter_coefficients, input_signal.size)), -half_size).real
+    else:  # periodic  roll周期循环
+        return roll(ifft(fft(input_signal) * fft(filter_coefficients, input_signal.size)), -half_size).real
 
 
 def build_fft(input_signal, filter_coefficients, threshold_windows=6, boundary=0):
@@ -318,67 +326,72 @@ def build_fft(input_signal, filter_coefficients, threshold_windows=6, boundary=0
 
     """
     num_coeffs = filter_coefficients.size
-    #print(n,boundary,M)
-    half_size = num_coeffs//2
+    # print(n,boundary,M)
+    half_size = num_coeffs // 2
     signal_size = input_signal.size
-    #power of 2 to apply fast fourier transform
-    windows_size = 2**ceil(log2(num_coeffs*(threshold_windows+1)))
-    number_of_windows = floor(signal_size//windows_size)
+    # power of 2 to apply fast fourier transform
+    windows_size = 2 ** ceil(log2(num_coeffs * (threshold_windows + 1)))
+    number_of_windows = floor(signal_size // windows_size)
 
     if number_of_windows == 0:
-        return fft_based(input_signal, filter_coefficients, boundary)#信号比窗口短的情况下计算FFt，返回信号和系数的卷积
+        return fft_based(input_signal, filter_coefficients, boundary)  # 信号比窗口短的情况下计算FFt，返回信号和系数的卷积
 
-    windowed_fft = empty_like(input_signal)#构建同类型大小的空数组
-    #pad with 0 to have a size in a power of 2
+    windowed_fft = empty_like(input_signal)  # 构建同类型大小的空数组
+    # pad with 0 to have a size in a power of 2
     windows_size = int(windows_size)
 
-    zeropadding = np.lib.pad(filter_coefficients, (0, windows_size-num_coeffs), 'constant', constant_values=0)
+    zeropadding = np.lib.pad(filter_coefficients, (0, windows_size - num_coeffs), 'constant', constant_values=0)
 
     h_fft = fft(zeropadding)
 
-    #to browse the whole signal
+    # to browse the whole signal
     current_pos = 0
 
-    #apply fft to a part of the signal. This part has a size which is a power
-    #of 2
-    if boundary == 0:#ZERO PADDING
+    # apply fft to a part of the signal. This part has a size which is a power
+    # of 2
+    if boundary == 0:  # ZERO PADDING
 
-        #window is half padded with since it's focused on the first half
-        window = input_signal[current_pos:current_pos+windows_size-half_size]
-        zeropaddedwindow = np.lib.pad(window, (len(h_fft)-len(window), 0), 'constant', constant_values=0)
+        # window is half padded with since it's focused on the first half
+        window = input_signal[current_pos:current_pos + windows_size - half_size]
+        zeropaddedwindow = np.lib.pad(window, (len(h_fft) - len(window), 0), 'constant', constant_values=0)
         x_fft = fft(zeropaddedwindow)
 
-    elif boundary == 1:#SYMMETRIC
-        window = np.concatenate([flipud(input_signal[:half_size]), input_signal[current_pos:current_pos+windows_size-half_size]])
+    elif boundary == 1:  # SYMMETRIC
+        window = np.concatenate(
+            [flipud(input_signal[:half_size]), input_signal[current_pos:current_pos + windows_size - half_size]])
         x_fft = fft(window)
 
     else:
         x_fft = fft(input_signal[:windows_size])
 
-    windowed_fft[:windows_size-num_coeffs] = (ifft(x_fft*h_fft)[num_coeffs-1:-1]).real
+    windowed_fft[:windows_size - num_coeffs] = (ifft(x_fft * h_fft)[num_coeffs - 1:-1]).real
 
-    current_pos += windows_size-num_coeffs-half_size
-    #apply fast fourier transofm to each windows
-    while current_pos+windows_size-half_size <= signal_size:
-
-        x_fft = fft(input_signal[current_pos-half_size:current_pos+windows_size-half_size])
-        #Suppress the warning, work on the real/imagina
-        windowed_fft[current_pos:current_pos+windows_size-num_coeffs] = (ifft(x_fft*h_fft)[num_coeffs-1:-1]).real
-        current_pos += windows_size-num_coeffs
+    current_pos += windows_size - num_coeffs - half_size
+    # apply fast fourier transofm to each windows
+    while current_pos + windows_size - half_size <= signal_size:
+        x_fft = fft(input_signal[current_pos - half_size:current_pos + windows_size - half_size])
+        # Suppress the warning, work on the real/imagina
+        windowed_fft[current_pos:current_pos + windows_size - num_coeffs] = (
+        ifft(x_fft * h_fft)[num_coeffs - 1:-1]).real
+        current_pos += windows_size - num_coeffs
     # print(countloop)
-    #apply fast fourier transform to the rest of the signal
-    if windows_size-(signal_size-current_pos+half_size) < half_size:
+    # apply fast fourier transform to the rest of the signal
+    if windows_size - (signal_size - current_pos + half_size) < half_size:
 
-        window = input_signal[current_pos-half_size:]
-        zeropaddedwindow = np.lib.pad(window, (0, int(windows_size-(signal_size-current_pos+half_size))), 'constant', constant_values=0)
+        window = input_signal[current_pos - half_size:]
+        zeropaddedwindow = np.lib.pad(window, (0, int(windows_size - (signal_size - current_pos + half_size))),
+                                      'constant', constant_values=0)
         x_fft = fft(zeropaddedwindow)
-        windowed_fft[current_pos:] = roll(ifft(x_fft*h_fft), half_size)[half_size:half_size+windowed_fft.size-current_pos].real
+        windowed_fft[current_pos:] = roll(ifft(x_fft * h_fft), half_size)[
+                                     half_size:half_size + windowed_fft.size - current_pos].real
         windowed_fft[-half_size:] = convolve(input_signal[-num_coeffs:], filter_coefficients, 'same')[-half_size:]
     else:
 
-        window = input_signal[current_pos-half_size:]
-        zeropaddedwindow = np.lib.pad(window, (0, int(windows_size-(signal_size-current_pos+half_size))), 'constant', constant_values=0)
+        window = input_signal[current_pos - half_size:]
+        zeropaddedwindow = np.lib.pad(window, (0, int(windows_size - (signal_size - current_pos + half_size))),
+                                      'constant', constant_values=0)
         x_fft = fft(zeropaddedwindow)
-        windowed_fft[current_pos:] = ifft(x_fft*h_fft)[num_coeffs-1:num_coeffs+windowed_fft.size-current_pos-1].real
+        windowed_fft[current_pos:] = ifft(x_fft * h_fft)[
+                                     num_coeffs - 1:num_coeffs + windowed_fft.size - current_pos - 1].real
 
     return windowed_fft
