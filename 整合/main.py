@@ -1,20 +1,19 @@
-import numpy as np
-import chirplet as ch
-import matplotlib.pyplot as plt
-import librosa.util
-import librosa
+import csv
 import os
+from warnings import simplefilter
+
+import librosa
+import librosa.util
+import matplotlib.pyplot as plt
+import numpy as np
 import scipy.signal as sg
 import soundfile as sf
-from vad import filter
-from enframe import pretune
-from enframe import enframe
-import csv
-import warnings
-from warnings import simplefilter
 from tqdm import tqdm
-from colorama import Fore
-import colorama
+
+import chirplet as ch
+from enframe import enframe
+from enframe import pretune
+from vad import filter
 
 simplefilter(action='ignore', category=FutureWarning)
 
@@ -109,6 +108,7 @@ def split_audio_files(audio_dir, frame_time, overlap_rate, check_duration=True):
                 print(audio_path)
                 # 切分音频至 frame_time 长度，重叠率为 overlap_rate
                 split_audio(audio_path, frame_time, overlap_rate)
+
 
 def compute_spectrogram(signal, sample_rate):
     """
@@ -294,7 +294,7 @@ def plotTFDF(audiopath):
 
     axarr.matshow(TFDF[0:index_frequency, :], cmap='jet',
                   origin='lower',
-                  extent=(times[0], times[-1], freqs[0], max_frequency),
+                  extent=(times[0], times[-1], 0, 8000),
                   aspect='auto')
 
     plt.axis('off')
@@ -423,17 +423,17 @@ def ge_graph(pathfile):
         # plotchirplet(chirps, file)
         # plotchTFDF(chirps, file)
         # plotmelspec(file)
-        plotlogmelspec(file)
-    # plotTFDF(file)
-    # plotsft(file)
-    # joblib.dump(chirps, file[:-3] + 'jl')
+        # plotlogmelspec(file)
+        plotTFDF(file)
+        # plotsft(file)
+        # joblib.dump(chirps, file[:-3] + 'jl')
 
 
-folder_path = r"F:\Database\Audios\test测试\negative"
-resample_sr = 16000     # 音频重采样频率，单位：Hz
-frame_time = 2000       # 指定切分的音频长度，单位：ms
-overlap_rate = 0.5      # 指定切分音频的重叠率，取值为0-1的小数
-vad(folder_path, resample_sr)
-split_audio_files(os.path.join(folder_path, 'vad'), frame_time, overlap_rate)
+folder_path = r"F:\Database\Audios\Track1+CoughVid\negative"
+resample_sr = 16000  # 音频重采样频率，单位：Hz
+frame_time = 2000  # 指定切分的音频长度，单位：ms
+overlap_rate = 0.5  # 指定切分音频的重叠率，取值为0-1的小数
+# vad(folder_path, resample_sr)
+# split_audio_files(os.path.join(folder_path, 'vad'), frame_time, overlap_rate)
 ge_graph(os.path.join(folder_path, "vad", 'new'))
 print("finish!!")
