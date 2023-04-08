@@ -24,6 +24,12 @@ def create_dir_not_exist(path):
 
 
 def split_audio(file_path, frame_time, overlap_rate):
+    """
+    切分音频至 frame_time 长度，重叠率为 overlap_rate
+    :param file_path: 音频文件路径
+    :param frame_time: 指定切分的音频长度，单位为毫秒
+    :param overlap_rate: 指定音频的重叠率，取值为 0-1 之间的小数
+    """
     data, sr = librosa.load(file_path, sr=None)
     frame_length = int(sr * frame_time / 1000)
     hop_length = int((1 - overlap_rate) * frame_length)
@@ -52,6 +58,11 @@ def split_audio(file_path, frame_time, overlap_rate):
 
 
 def vad(file_dir, resample_sr):
+    """
+    静音删除
+    :param file_dir: 音频文件所在目录
+    :param resample_sr: 音频重采样的采样率
+    """
     resample_dir = os.path.join(file_dir, "resample")
     vad_dir = os.path.join(file_dir, "vad")
     # 创建resample重采样文件夹和vad静音删除文件夹
@@ -178,7 +189,7 @@ def plotsft(audiopath):
     plt.close('all')
 
 
-def plotmelspec(audiopath):
+def plotMFCC(audiopath):
     print(audiopath)
     # print("--- filename---" ,audiopath)
     # print('绘制spec' )
@@ -198,11 +209,11 @@ def plotmelspec(audiopath):
 
     max_frequency = freqs[index_frequency]
 
-    melspec = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512)  # 计算mel倒谱
+    MFCC = librosa.feature.mfcc(data, sr, n_mfcc=32, n_fft=1024, hop_length=512)  # 计算mel倒谱
 
     # print('mel',np.shape(melspec))
 
-    axarr.matshow(melspec[1:index_frequency, :], cmap='jet',
+    axarr.matshow(MFCC[1:index_frequency, :], cmap='jet',
                   origin='lower',
                   extent=(times[0], times[-1], freqs[0], max_frequency),
                   aspect='auto')
@@ -404,6 +415,10 @@ def plotchTFDF(chirps, audiopath):
 
 
 def ge_graph(pathfile):
+    """
+    绘制谱图
+    :param pathfile: 语音文件路径
+    """
     chirplet = []
 
     for root, dirs, files in os.walk(pathfile):
@@ -420,20 +435,26 @@ def ge_graph(pathfile):
         ch1 = ch.FCT(sample_rate=sr)
         chirps = ch1.compute(data)
         # print(chirps)
-        # plotchirplet(chirps, file)
+        plotchirplet(chirps, file)
         # plotchTFDF(chirps, file)
-        # plotmelspec(file)
-        # plotlogmelspec(file)
+        plotMFCC(file)
+        plotlogmelspec(file)
         plotTFDF(file)
         # plotsft(file)
         # joblib.dump(chirps, file[:-3] + 'jl')
 
 
-folder_path = r"F:\Database\Audios\Track1+CoughVid\positive"
+folder_path = r"F:\Database\Audios\Track1+CoughVid\训练集&测试集\原始数据集\原始测试集"
+path_list = [os.path.join(folder_path, 'negative'), os.path.join(folder_path, 'positive')]
+vad_path = os.path.join(folder_path, 'vad')
 resample_sr = 16000  # 音频重采样频率，单位：Hz
-frame_time = 2000  # 指定切分的音频长度，单位：ms
+frame_time = 4000  # 指定切分的音频长度，单位：ms
 overlap_rate = 0.5  # 指定切分音频的重叠率，取值为0-1的小数
 # vad(folder_path, resample_sr)
-# split_audio_files(os.path.join(folder_path, 'vad'), frame_time, overlap_rate)
-ge_graph(os.path.join(folder_path, "vad", 'new'))
+# split_audio_files(folder_path, frame_time, overlap_rate, check_duration=False)
+# ge_graph(os.path.join(folder_path, "vad", 'new'))
+# print("finish!!")
+
+for path in path_list:
+    ge_graph(os.path.join(path, 'new'))
 print("finish!!")

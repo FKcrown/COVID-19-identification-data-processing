@@ -9,13 +9,17 @@ import shutil
 from tqdm import tqdm
 
 # 定义源文件夹、目标文件夹和指定文件夹的路径
-source_folder = r"F:\Database\Audios\Track1+CoughVid\classify\positive-male"
-target_folder = r"F:\Database\分数据集绘制谱图\Track1+CoughVid\logMel（2s）\positive"
-specified_folder = r"F:\Database\Audios\Track1+CoughVid\classify\pm"
+source_folder = r"F:\Database\Audios\Track1+CoughVid\训练集&测试集\原始数据集\原始训练集\positive"
+target_folder = r"F:\Database\分数据集绘制谱图\Track1+CoughVid\logMel(2s)\positive"
+specified_folder = r"F:\Database\Audios\Track1+CoughVid\训练集&测试集\原始数据集\原始训练集\positive\logMel(2s)"
 
 # 获取源文件夹下的所有文件名，并去掉后缀，组成一个列表
 source_files = os.listdir(source_folder)
 source_names = [os.path.splitext(file)[0] for file in source_files]
+
+# 检测并创建specified_folder
+if not os.path.exists(specified_folder):
+    os.makedirs(specified_folder)
 
 # 遍历目标文件夹下的所有文件
 for file in tqdm(os.listdir(target_folder)):
@@ -29,3 +33,5 @@ for file in tqdm(os.listdir(target_folder)):
             specified_path = os.path.join(specified_folder, file)
             # 复制文件到指定文件夹
             shutil.copy(target_path, specified_path)
+
+print("finish!")

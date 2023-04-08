@@ -41,9 +41,9 @@ def get_related_files(folder, audio_path_list):
 
 if __name__ == '__main__':
     # 定义文件夹路径
-    original_folder = r'F:\Database\Audios\Track1+CoughVid\p(over 4s)\vad'
+    original_folder = r'F:\Database\Audios\Track1+CoughVid\n(over 4s)\vad'
     related_folder = os.path.join(original_folder, 'new')
-    original_output_folder = r'F:\Database\Audios\Track1+CoughVid\n&p(200 over 4s)\positive(200)'
+    original_output_folder = r'F:\Database\Audios\Track1+CoughVid\n&p(200 over 4s)\negative(200)'
     related_output_folder = os.path.join(original_output_folder, 'new')
 
     # 获取所有长度大于duration秒的音频文件，并从中随机选择200个文件

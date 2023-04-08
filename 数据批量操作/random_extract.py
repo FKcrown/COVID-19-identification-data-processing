@@ -1,3 +1,8 @@
+"""
+该文件用于在文件夹中随机提取指定数量的文件
+"""
+
+
 import os
 import random
 import shutil
@@ -13,6 +18,8 @@ def moveFile(fileDir, trainDir, number):
     rate1 = number/filenumber
     picknumber1 = int(filenumber * rate1)  # 按照rate比例从文件夹中取一定数量的文件
     sample1 = random.sample(pathDir, picknumber1)  # 随机选取picknumber数量的样本
+    if not os.path.exists(os.path.dirname(trainDir)):   # 如果tranDir上一级文件夹不存在则创建
+        os.makedirs(os.path.dirname(trainDir))
     if not os.path.exists(trainDir):
         os.mkdir(trainDir)
     for name in sample1:
@@ -22,8 +29,13 @@ def moveFile(fileDir, trainDir, number):
 
 
 if __name__ == '__main__':
-    fileDir = r'E:\DataBase\Coswara\negative'
-    trainDir = r'E:\DataBase\Coswara\negative\trans'
+    fileDir = r'F:\Database\Audios\Track1+CoughVid\训练集&测试集\原始数据集\原始训练集\negative\new'
+    # trainDir = r'F:\Database\Audios\Track1+CoughVid\5折数据集\v2\positive'
+    # moves = (fileDir, trainDir, 500)
 
-    moveFile(fileDir, trainDir, 500)
+    # 5折数据集提取
+    for i in range(5):
+        i += 1
+        trainDir = r'F:\Database\Audios\Track1+CoughVid\5折数据集\v{}\negative'.format(i)
+        moveFile(fileDir, trainDir, 500)
     print("finish!!")
