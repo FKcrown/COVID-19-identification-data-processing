@@ -1,5 +1,6 @@
 import csv
 import os
+import shutil
 from warnings import simplefilter
 
 import librosa
@@ -16,6 +17,8 @@ from enframe import pretune
 from vad import filter
 
 simplefilter(action='ignore', category=FutureWarning)
+spec_type = ['chirplet', 'MFCC', 'logMel', 'TFDF']
+classify_type = ['negative', 'positive']
 
 
 def create_dir_not_exist(path):
@@ -35,9 +38,9 @@ def split_audio(file_path, frame_time, overlap_rate):
     hop_length = int((1 - overlap_rate) * frame_length)
 
     tdata = pretune(0.955, data)
-    '''plt.plot(tdata)
-	plt.ylabel('tdata')
-	plt.show()'''
+    # plt.plot(tdata)
+	# plt.ylabel('tdata')
+	# plt.show()
 
     winfunc = sg.hamming(frame_length)
     frames = enframe(tdata, frame_length, hop_length, winfunc)
@@ -119,6 +122,30 @@ def split_audio_files(audio_dir, frame_time, overlap_rate, check_duration=True):
                 print(audio_path)
                 # 切分音频至 frame_time 长度，重叠率为 overlap_rate
                 split_audio(audio_path, frame_time, overlap_rate)
+
+
+def move_spec(folder_path, spec_folder):
+    """
+    将folder_path下的谱图文件按谱图种类移动到spec_folder下
+    :param folder_path: 要移动的文件夹总目录
+    :param spec_folder: 存放谱图的文件夹
+    """
+    create_dir_not_exist(spec_folder)
+    for spec in tqdm(spec_type):
+        spec_path = os.path.join(spec_folder, spec)
+        create_dir_not_exist(spec_path)
+        for classify in classify_type:
+            classify_path = os.path.join(spec_path, classify)
+            origin_folder = os.path.join(folder_path, classify, 'vad', 'new', spec)
+            new_folder = classify_path
+            try:
+                # 尝试使用shutil.copytree函数复制文件夹
+                shutil.copytree(origin_folder, new_folder)
+            except FileExistsError:
+                # 如果new_folder文件已存在，则删除
+                shutil.rmtree(new_folder)
+                # 再次尝试使用shutil.copytree函数复制文件夹
+                shutil.copytree(origin_folder, new_folder)
 
 
 def compute_spectrogram(signal, sample_rate):
@@ -444,17 +471,29 @@ def ge_graph(pathfile):
         # joblib.dump(chirps, file[:-3] + 'jl')
 
 
-folder_path = r"F:\Database\Audios\Track1+CoughVid\训练集&测试集\原始数据集\原始训练集"
+folder_path = r"F:\Database\Audios\自建数据集"   # 音频文件所在文件夹
+spec_folder = r"F:\Database\Audios\自建数据集\spec"  # 保存谱图的文件夹
 path_list = [os.path.join(folder_path, 'negative'), os.path.join(folder_path, 'positive')]
-vad_path = os.path.join(folder_path, 'vad')
 resample_sr = 16000  # 音频重采样频率，单位：Hz
 frame_time = 4000  # 指定切分的音频长度，单位：ms
 overlap_rate = 0.5  # 指定切分音频的重叠率，取值为0-1的小数
+
+"""
+计算单个文件夹下的谱图
+"""
 # vad(folder_path, resample_sr)
-# split_audio_files(folder_path, frame_time, overlap_rate, check_duration=False)
+# split_audio_files(os.path.join(folder_path, 'vad'), frame_time, overlap_rate, check_duration=False)
 # ge_graph(os.path.join(folder_path, "vad", 'new'))
 # print("finish!!")
 
+"""
+计算多个文件夹（negative,positive）下的谱图
+"""
 for path in path_list:
-    ge_graph(path)
+    vad(path, resample_sr)
+    split_audio_files(os.path.join(path, 'vad'), frame_time, overlap_rate, check_duration=False)
+    ge_graph(os.path.join(path, "vad", 'new'))
 print("finish!!")
+
+# # 移动并整理谱图文件
+# move_spec(folder_path, spec_folder)
