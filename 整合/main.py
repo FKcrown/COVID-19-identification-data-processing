@@ -1,6 +1,7 @@
 import csv
 import os
 import shutil
+import sys
 from warnings import simplefilter
 
 import librosa
@@ -39,8 +40,8 @@ def split_audio(file_path, frame_time, overlap_rate):
 
     tdata = pretune(0.955, data)
     # plt.plot(tdata)
-	# plt.ylabel('tdata')
-	# plt.show()
+    # plt.ylabel('tdata')
+    # plt.show()
 
     winfunc = sg.hamming(frame_length)
     frames = enframe(tdata, frame_length, hop_length, winfunc)
@@ -73,9 +74,9 @@ def vad(file_dir, resample_sr):
     create_dir_not_exist(vad_dir)
 
     file_list = os.listdir(file_dir)
-    for file_name in tqdm(file_list, desc="静音删除", ncols=80, colour='green'):
+    for file_name in tqdm(file_list, file=sys.stdout, desc="静音删除", ncols=80, colour='green'):
         if file_name.endswith(".wav"):
-            print(file_name)
+            tqdm.write(file_name)
             file_path = os.path.join(file_dir, file_name)
 
             resample_path = os.path.join(resample_dir, file_name[:-4] + "-{}K".format(resample_sr / 1000) + ".wav")
@@ -90,7 +91,7 @@ def vad(file_dir, resample_sr):
                 filter(resample_path, vad_dir, expand=False)
                 os.remove(resample_path)  # 删除resample_dir里的文件
             else:
-                print("{}为空音频".format(file_path))
+                tqdm.write("{}为空音频".format(file_path))
                 with open('countries.csv', 'w', encoding='UTF8', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(file_path)  # 空音频路径写入csv文件
@@ -105,21 +106,21 @@ def split_audio_files(audio_dir, frame_time, overlap_rate, check_duration=True):
     :param overlap_rate: 指定音频的重叠率，取值为 0-1 之间的小数
     :param check_duration: 是否检查音频长度是否大于等于 frame_time，当值为 False 时，直接切分音频文件
     """
-    for file in tqdm(os.listdir(audio_dir), desc="音频切分", ncols=80, colour='blue'):
+    for file in tqdm(os.listdir(audio_dir), file=sys.stdout, desc="音频切分", ncols=80, colour='blue'):
         if file.endswith(".wav"):
             audio_path = os.path.join(audio_dir, file)
             # 如果check_duration为True，则检查音频长度是否大于等于frame_time
             if check_duration:
                 duration = librosa.get_duration(filename=audio_path)
                 if duration >= frame_time / 1000:
-                    print(audio_path)
+                    tqdm.write(audio_path)
                     # 切分音频至 frame_time 长度，重叠率为 overlap_rate
                     split_audio(audio_path, frame_time, overlap_rate)
                 else:
-                    print("{} 音频长度小于 {}s，不处理".format(audio_path, frame_time / 1000))
+                    tqdm.write("{} 音频长度小于 {}s，不处理".format(audio_path, frame_time / 1000))
             # 如果check_duration为False，则直接切分音频文件
             else:
-                print(audio_path)
+                tqdm.write(audio_path)
                 # 切分音频至 frame_time 长度，重叠率为 overlap_rate
                 split_audio(audio_path, frame_time, overlap_rate)
 
@@ -131,7 +132,7 @@ def move_spec(folder_path, spec_folder):
     :param spec_folder: 存放谱图的文件夹
     """
     create_dir_not_exist(spec_folder)
-    for spec in tqdm(spec_type):
+    for spec in tqdm(spec_type, desc="移动谱图", ncols=80, colour='yellow'):
         spec_path = os.path.join(spec_folder, spec)
         create_dir_not_exist(spec_path)
         for classify in classify_type:
@@ -217,7 +218,7 @@ def plotsft(audiopath):
 
 
 def plotMFCC(audiopath):
-    print(audiopath)
+    # print(audiopath)
     # print("--- filename---" ,audiopath)
     # print('绘制spec' )
     data, sr = librosa.load(audiopath, sr=None)
@@ -268,7 +269,7 @@ def plotMFCC(audiopath):
 
 
 def plotlogmelspec(audiopath):
-    print(audiopath)
+    # print(audiopath)
 
     data, sr = librosa.load(audiopath, sr=None)
 
@@ -306,7 +307,7 @@ def plotlogmelspec(audiopath):
 
 
 def plotTFDF(audiopath):
-    print(audiopath)
+    # print(audiopath)
     # print("--- filename---" ,audiopath)
     # print('绘制spec' )
     data, sr = librosa.load(audiopath, sr=None)
@@ -441,21 +442,25 @@ def plotchTFDF(chirps, audiopath):
     plt.close('all')
 
 
-def ge_graph(pathfile):
+def ge_graph(pathfile, check_progress=True):
     """
     绘制谱图
+    :param check_progress: 检查上一次文件处理的进度
     :param pathfile: 语音文件路径
     """
-    chirplet = []
+    split_file = []
+    # 统计目前谱图绘制的情况，并继续运行程序
+    for file in tqdm(os.listdir(pathfile), desc="查询进度", ncols=80):
+        if file.endswith('wav'):
+            file_path = os.path.join(pathfile, file)
+            split_file.append(file_path)
+            if check_progress:
+                new_path = file[:-4] + '.jpg'
+                if os.path.exists(os.path.join(pathfile, 'TFDF', new_path)):
+                    split_file.remove(file_path)
 
-    for root, dirs, files in os.walk(pathfile):
-
-        for file in files:
-
-            if file.endswith(".wav"):
-                chirplet.append(os.path.join(root, file))
-
-    for file in tqdm(chirplet, desc="绘制谱图", ncols=80):
+    for file in tqdm(split_file, file=sys.stdout, desc="绘制谱图", ncols=80):
+        tqdm.write(file)
         # start_time = time.time()
         data, sr = librosa.load(file, sr=None)
         # data=data/abs(data).max()#对语音进行归一化
@@ -471,8 +476,8 @@ def ge_graph(pathfile):
         # joblib.dump(chirps, file[:-3] + 'jl')
 
 
-folder_path = r"F:\Database\Audios\自建数据集"   # 音频文件所在文件夹
-spec_folder = r"F:\Database\Audios\自建数据集\spec"  # 保存谱图的文件夹
+folder_path = r"F:\Database\Audios\test测试"  # 音频原文件所在文件夹
+spec_folder = r"F:\Database\Audios\test测试\spec"  # 保存谱图的文件夹
 path_list = [os.path.join(folder_path, 'negative'), os.path.join(folder_path, 'positive')]
 resample_sr = 16000  # 音频重采样频率，单位：Hz
 frame_time = 4000  # 指定切分的音频长度，单位：ms
@@ -495,5 +500,7 @@ for path in path_list:
     ge_graph(os.path.join(path, "vad", 'new'))
 print("finish!!")
 
-# # 移动并整理谱图文件
-# move_spec(folder_path, spec_folder)
+"""
+移动并整理谱图文件
+"""
+move_spec(folder_path, spec_folder)
